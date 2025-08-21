@@ -21,7 +21,7 @@ class SoundAnglePublisher(Node):
     def publish_numbers(self, numbers):
         msg = Float64MultiArray()
         msg.data = numbers
-        self.pub.publish(msg)
+        self.publisher_.publish(msg)
         self.get_logger().info(f'Published: {msg.data}')
 
 class doa_streamer:
