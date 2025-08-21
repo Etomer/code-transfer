@@ -32,6 +32,7 @@ class doa_streamer:
         nrd = p.get_device_count()
         for i in range(nrd):
             info = p.get_device_info_by_index(i)
+            print(info)
             if info['name'] == self.audiocard:
                 id = i
         p.terminate()
