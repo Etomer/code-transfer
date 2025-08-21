@@ -16,8 +16,7 @@ class SoundAnglePublisher(Node):
     def __init__(self):
         super().__init__('sound_angle_publisher')
         self.publisher_ = self.create_publisher(Float64MultiArray, 'sound_angle', 10)
-        timer_period = 1.0  # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+
 
     def publish_numbers(self, numbers):
         msg = Float64MultiArray()
