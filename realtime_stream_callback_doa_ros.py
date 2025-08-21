@@ -269,7 +269,7 @@ class doa_streamer:
                 rclpy.shutdown()
                 return
             
-CHANNELS = 4
+CHANNELS = 2
 mydoa = doa_streamer(CHANNELS)
 idx = mydoa.get_soundcard_device()
 if idx < 0:
