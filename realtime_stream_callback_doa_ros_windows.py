@@ -7,7 +7,8 @@ import torch
 import matplotlib.pyplot as plt
 import time
 import math
-
+import queue
+import soundfile as sf
 
 os.environ["SD_ENABLE_ASIO"] = "1"
 import sounddevice as sd
@@ -36,10 +37,11 @@ class doa_streamer:
         nrd = len(devices)
         for i in range(nrd):
             info = devices[i]
-            print(info['name'])
             if info['name'] == self.audiocard:
                 id = i
-        return i
+        print(id)
+        print(devices[id])
+        return id
 
     def set_rec_positions(self,rec):
         self.rec = rec
@@ -56,6 +58,7 @@ class doa_streamer:
         self.vsound = vsound
         self.hz_lims_low = hz_lims_low
         self.hz_lims_high = hz_lims_high
+        self.q = queue.Queue()
 
         rclpy.init()
         self.node = SoundAnglePublisher()
@@ -228,15 +231,16 @@ class doa_streamer:
     # callback function to stream audio, another thread.
     def callback(self,data,frames ,time, status):
         
-        print(data.shape)
         #s = np.frombuffer(data, dtype=np.int16).reshape((CHANNELS,CHUNK),order = 'F')
-        self.audio = np.frombuffer(data, dtype=np.int16)
-        s = self.audio.reshape((self.CHANNELS,self.CHUNK),order = 'F')
+        #self.audio = np.frombuffer(data, dtype=np.int16)
+        #s = self.audio.reshape((self.CHANNELS,self.CHUNK),order = 'F')
+        s = data.T
         diffs = self._correlate_signals(s) 
         angle_est = self._doa_from_correlates(diffs)
         print(angle_est)
         self.node.publish_numbers(angle_est)
         rclpy.spin_once(self.node, timeout_sec=0.0)
+        self.q.put(data.copy())
 
 
         #return (self.audio, pyaudio.paContinue)
@@ -259,18 +263,20 @@ class doa_streamer:
 
         # self.audio = np.empty((self.CHUNK),dtype="int16")
         # self.stream.start_stream()
+        with sf.SoundFile("New_Recording.wav", mode='x', samplerate=self.RATE,
+                      channels=self.CHANNELS) as file:
+            with sd.InputStream(device=device_index, channels=CHANNELS, callback=self.callback,
+                            blocksize=int(self.CHUNK),
+                            samplerate=self.RATE):
+                while True:
+                    try:
+                        file.write(self.q.get())
+                        time.sleep(0.01)
 
-        with sd.InputStream(device=device_index, channels=CHANNELS, callback=self.callback,
-                        blocksize=int(self.CHUNK),
-                        samplerate=self.RATE):
-            while True:
-                try:
-                    time.sleep(0.1)
-
-                except KeyboardInterrupt:
-                    self.node.destroy_node()
-                    rclpy.shutdown()
-                    return
+                    except KeyboardInterrupt:
+                        self.node.destroy_node()
+                        rclpy.shutdown()
+                        return
             
 CHANNELS = 6
 mydoa = doa_streamer(CHANNELS)
@@ -279,7 +285,16 @@ if idx < 0:
     print('Soundcard device not found')
     sys.exit(1)
 
-rec = torch.rand((CHANNELS,3))
+#rec = torch.rand((CHANNELS,3))
+rec = torch.tensor(
+    [0.0,0.0,0.0],
+    [0.0,1.0,0.0],
+    [0.0,2.0,0.0],
+    [1.5,2.0,0.0],
+    [1.5,1.0,0.0],
+    [1.5,0.0,0.0],
+    )
+
 mydoa.set_rec_positions(rec)
 
 print("* recording")
