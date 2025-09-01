@@ -280,7 +280,7 @@ class doa_streamer:
 
                 except KeyboardInterrupt:
                     temp = np.concatenate(self.data)
-                    sp.io.wavfile.write("Recording_"+str(datetime.datetime.now())+".wav",self.RATE,temp)
+                    sp.io.wavfile.write("Recording_"+datetime.datetime.now().strftime('%m/%d/%Y_%H-%M-%S')+".wav",self.RATE,temp)
                     self.node.destroy_node()
                     rclpy.shutdown()
                     return
