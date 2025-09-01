@@ -9,6 +9,8 @@ import time
 import math
 import queue
 import soundfile as sf
+import scipy as sp
+import datetime
 
 os.environ["SD_ENABLE_ASIO"] = "1"
 import sounddevice as sd
@@ -59,6 +61,7 @@ class doa_streamer:
         self.hz_lims_low = hz_lims_low
         self.hz_lims_high = hz_lims_high
         self.q = queue.Queue()
+        self.data = []
 
         rclpy.init()
         self.node = SoundAnglePublisher()
@@ -240,7 +243,8 @@ class doa_streamer:
         print(angle_est)
         self.node.publish_numbers(angle_est)
         rclpy.spin_once(self.node, timeout_sec=0.0)
-        self.q.put(data.copy())
+        #self.q.put(data.copy())
+        self.data.append(data.copy())
 
 
         #return (self.audio, pyaudio.paContinue)
@@ -263,21 +267,24 @@ class doa_streamer:
 
         # self.audio = np.empty((self.CHUNK),dtype="int16")
         # self.stream.start_stream()
-        with sf.SoundFile("New_Recording.wav", mode='x', samplerate=self.RATE,
-                      channels=self.CHANNELS) as file:
-            with sd.InputStream(device=device_index, channels=CHANNELS, callback=self.callback,
-                            blocksize=int(self.CHUNK),
-                            samplerate=self.RATE):
-                while True:
-                    try:
-                        file.write(self.q.get())
-                        time.sleep(0.01)
 
-                    except KeyboardInterrupt:
-                        self.node.destroy_node()
-                        rclpy.shutdown()
-                        return
-            
+        
+        #with sf.SoundFile("New_Recording.wav", mode='x', samplerate=self.RATE,
+        #              channels=self.CHANNELS) as file:
+        with sd.InputStream(device=device_index, channels=CHANNELS, callback=self.callback,
+                        blocksize=int(self.CHUNK),
+                        samplerate=self.RATE):
+            while True:
+                try:
+                    time.sleep(0.01)
+
+                except KeyboardInterrupt:
+                    temp = np.concatenate(self.data)
+                    sp.io.wavfile.write("Recording_"+str(datetime.datetime.now())+".wav",self.RATE,temp)
+                    self.node.destroy_node()
+                    rclpy.shutdown()
+                    return
+        
 CHANNELS = 6
 mydoa = doa_streamer(CHANNELS)
 idx = mydoa.get_soundcard_device()
