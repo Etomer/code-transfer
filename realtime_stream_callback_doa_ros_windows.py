@@ -286,14 +286,14 @@ if idx < 0:
     sys.exit(1)
 
 #rec = torch.rand((CHANNELS,3))
-rec = torch.tensor(
+rec = torch.tensor([
     [0.0,0.0,0.0],
     [0.0,1.0,0.0],
     [0.0,2.0,0.0],
     [1.5,2.0,0.0],
     [1.5,1.0,0.0],
     [1.5,0.0,0.0],
-    )
+    ])
 
 mydoa.set_rec_positions(rec)
 
